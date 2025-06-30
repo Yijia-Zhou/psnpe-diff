@@ -27,7 +27,6 @@ public class BenchmarkApplication extends Application {
     }
 
     public static String getExternalDirPath() { return mContext.getExternalFilesDir("").getAbsolutePath(); }
-    public static String getExternalDirPath(String type) { return mContext.getExternalFilesDir(type).getAbsolutePath(); }
 
     public static String getNativeLibraryPath() {
         return mNativeLibraryPath;

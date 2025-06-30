@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Qualcomm Technologies, Inc.
+ * Copyright (c) 2021-2024 Qualcomm Technologies, Inc.
  * All Rights Reserved.
  * Confidential and Proprietary - Qualcomm Technologies, Inc.
  */
@@ -9,14 +9,31 @@ import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public class MathUtils {
     public final static String TAG = MathUtils.class.getSimpleName();
+    public enum Format{
+        HW,
+        WH,
+        HWC,
+        CHW
+    };
+
+    public static double mean(double[] data) {
+        if(data.length == 0) {
+            return Double.NaN;
+        }
+        double mean = 0.0;
+        for (double datum : data) {
+            mean += datum;
+        }
+        mean = mean / (double)data.length;
+        return mean;
+    }
+
     public static double min(ArrayList<Double> nums){
         double minNum = Double.MAX_VALUE;
         for (double num : nums){
@@ -26,18 +43,7 @@ public class MathUtils {
         }
         return minNum;
     }
-
-    public static double max(ArrayList<Double> nums){
-        double maxNum = 0;
-        for (double num : nums){
-            if (num >= maxNum){
-                maxNum = num;
-            }
-        }
-        return maxNum;
-    }
-
-    public static int minMatrix(int[][] num) {
+    public static int min(int[][] num) {
         int min = Integer.MAX_VALUE;
         for(int i = 0; i < num.length; i++) {
             for(int j = 0; j < num[0].length; j++) {
@@ -49,7 +55,16 @@ public class MathUtils {
         return min;
     }
 
-    public static int maxMatrix(int[][] num) {
+    public static double max(ArrayList<Double> nums){
+        double maxNum = 0;
+        for (double num : nums){
+            if (num >= maxNum){
+                maxNum = num;
+            }
+        }
+        return maxNum;
+    }
+    public static int max(int[][] num) {
         int max = Integer.MIN_VALUE;
         for(int i = 0; i < num.length; i++) {
             for(int j = 0; j < num[0].length; j++) {
@@ -59,6 +74,18 @@ public class MathUtils {
             }
         }
         return max;
+    }
+
+    public static float[][][] round(float[][][] in) {
+        float[][][] out = new float[in.length][in[0].length][in[0][0].length];
+        for (int i = 0; i < in.length; ++i) {
+            for (int j = 0; j < in[i].length; ++j) {
+                for (int k = 0; k < in[i][j].length; ++k){
+                    out[i][j][k] = (float) Math.round(in[i][j][k]);
+                }
+            }
+        }
+        return out;
     }
 
     public static double getAverage(List<Double> num) {
@@ -71,20 +98,38 @@ public class MathUtils {
         }
         return (double) average/num.size();
     }
-    public static int[][] matrixReshape(float[] matrix, int height, int width) {
-        if(matrix.length == 0 || matrix.length != height * width) {
-            Log.e(TAG, "matrix length=" + matrix.length + ", height=" + height + ", width=" + width);
+
+    public static int[][] matrixReshape(float[] src ,int height, int width) {
+        if(src.length == 0 || src.length != height * width) {
+            Log.e(TAG, "matrix length=" + src.length + ", height=" + height + ", width=" + width);
             return null;
         }
         int [][] reshapedMatrix = new int[height][width];
 
         for(int i = 0; i < height; i++) {
             for(int j = 0; j < width; j++) {
-                reshapedMatrix[i][j] = (int)matrix[i*width + j];
+                reshapedMatrix[i][j] = (int)src[i*width + j];
             }
         }
         return reshapedMatrix;
     }
+
+    public static float[][][] reshapeFloat1dTo3d(float[] src , int[] dstDims) {
+        assert src != null && dstDims != null;
+        assert dstDims.length == 3;
+        assert src.length == dstDims[0] * dstDims[1] * dstDims[2];
+        float [][][] reshapedMat = new float[dstDims[0]][dstDims[1]][dstDims[2]];
+
+        for (int i0 = 0; i0 < dstDims[0]; i0++) {
+            for (int i1 = 0; i1 < dstDims[1]; i1++) {
+                for (int i2 = 0; i2 < dstDims[2]; i2++) {
+                    reshapedMat[i0][i1][i2] = src[i0*dstDims[1]*dstDims[2] + i1*dstDims[2] + i2];
+                }
+            }
+        }
+        return reshapedMat;
+    }
+
     public static int[][] matrixReshapeAndCut(float[] matrix, int cut_height, int cut_width, int reshape_height, int reshape_width) {
         if(matrix.length == 0 || matrix.length != reshape_height * reshape_width) {
             Log.e(TAG, "matrix length=" + matrix.length + ", reshape height=" + reshape_height + ", reshape width=" + reshape_width);
@@ -152,10 +197,10 @@ public class MathUtils {
     }
     public static double[] calAverages(double[]precision, double[]recall, int[] labels) {
         double[] result = new double[2];
-        List<Integer> precT = new ArrayList<Integer>();
-        List<Integer> recallT = new ArrayList<Integer>();
-        List<Double> precFinal = new ArrayList<Double>();
-        List<Double> recallFinal = new ArrayList<Double>();
+        List<Integer> precT = new ArrayList<>();
+        List<Integer> recallT = new ArrayList<>();
+        List<Double> precFinal = new ArrayList<>();
+        List<Double> recallFinal = new ArrayList<>();
         for(int i = 0; i < labels.length; i++) {
             if(Double.isNaN(precision[i])) {
                 precT.add(i);
@@ -164,16 +209,16 @@ public class MathUtils {
                 recallT.add(i);
             }
         }
-        Set tagSet = new HashSet();
+        Set<Integer> tagSet = new HashSet<>();
         for(int i = 0; i < labels.length; i++) {
             tagSet.add(i);
         }
-        Set precTSet = new HashSet(precT);
-        Set recallTSet = new HashSet(recallT);
+        Set<Integer> precTSet = new HashSet<>(precT);
+        Set<Integer> recallTSet = new HashSet<>(recallT);
         precTSet.addAll(recallTSet);
         tagSet.removeAll(precTSet);
         List<Object> finalList = Arrays.asList(tagSet.toArray());
-        List<Integer> notCal = new ArrayList<Integer>();
+        List<Integer> notCal = new ArrayList<>();
         for(Object i:precTSet.toArray()) {
             notCal.add(labels[(Integer) i]);
         }
@@ -250,4 +295,224 @@ public class MathUtils {
         result= new double[]{averageGlobalAcc, averageIOU,averageRecall,averagePrec,averageF1Score};
         return result;
     }
+
+    public static  float[][][] matrixDiv(float[][][] divided, double divisor) {
+        int[] dims = new int[]{divided.length, divided[0].length, divided[0][0].length};
+        float[][][] result = new float[dims[0]][dims[1]][dims[2]];
+        for (int idx0 = 0; idx0 < dims[0]; ++idx0) {
+            for (int idx1 = 0; idx1 < dims[1]; ++idx1) {
+                for (int idx2 = 0; idx2 < dims[2]; ++idx2) {
+                    result[idx0][idx1][idx2] = (float)(divided[idx0][idx1][idx2] / divisor);
+                }
+            }
+        }
+        return result;
+    }
+
+    public static double[] matrixMul(double[] input1, double[] input2){
+        double[] output = new double[input1.length];
+        for (int i = 0; i < output.length; ++i){
+            output[i] = input1[i] * input2[i];
+        }
+        return output;
+    }
+
+    public static float[] matrixReformat(float[][][] src, Format srcFormat, Format dstFormat) {
+        float[] dst;
+        if (Format.CHW == srcFormat && Format.HWC == dstFormat) {
+            int channel = src.length;
+            int height = src[0].length;
+            int width = src[0][0].length;
+            dst = new float[height * width * channel];
+            for (int h = 0; h < height; ++h) {
+                for (int w = 0; w < width; ++w) {
+                    for (int c = 0; c < channel; ++c) {
+                        dst[h*width*channel + w*channel + c] = src[c][h][w];
+                    }
+                }
+            }
+        }
+        else {
+            throw new UnsupportedOperationException(String.format("Unsupported Reformat: %s -> %s", srcFormat, dstFormat));
+        }
+        return dst;
+    }
+    public static float[] matrixReformat(float[][] src, Format srcFormat, Format dstFormat) {
+        float[] dst;
+        if (Format.HW == srcFormat && Format.HW == dstFormat) {
+            int height = src.length;
+            int width = src[0].length;
+            dst = new float[height * width];
+            for (int h = 0; h < height; ++h) {
+                for (int w = 0; w < width; ++w) {
+                    dst[h*width + w] = src[h][w];
+                }
+            }
+        }
+        else if (Format.WH == srcFormat && Format.HW == dstFormat) {
+            int width = src.length;
+            int height = src[0].length;
+            dst = new float[height * width];
+            for (int h = 0; h < height; ++h) {
+                for (int w = 0; w < width; ++w) {
+                    dst[h*width + w] = src[w][h];
+                }
+            }
+        }
+        else {
+            throw new UnsupportedOperationException(String.format("Unsupported Reformat: %s -> %s", srcFormat, dstFormat));
+        }
+        return dst;
+    }
+
+    public static float[][] matrixResizeLiner(float [][] src, int dstHeight, int dstWidth){
+        if(null == src){
+            throw new IllegalArgumentException("src buffer is null");
+        }
+        if(0 == src.length || 0 == src[0].length){
+            throw new IllegalArgumentException(String.format("Wrong resize src buffer size(%d, %d)", dstWidth, dstHeight));
+        }
+        if(0 == dstWidth || 0 == dstHeight){
+            throw new IllegalArgumentException(String.format("Wrong resize dstSize(%d, %d)", dstWidth, dstHeight));
+        }
+
+        int srcHeight = src.length;
+        int srcWidth = src[0].length;
+        float[][] dst = new float[dstHeight][dstWidth];
+
+        double scaleX = (double)srcWidth / (double)dstWidth;
+        double scaleY = (double)srcHeight / (double)dstHeight;
+
+        for(int dstY = 0; dstY < dstHeight; ++dstY){
+            double fy = ((double)dstY + 0.5) * scaleY - 0.5;
+            int sy = (int)fy;
+            fy -= sy;
+            if(sy < 0){
+                fy = 0.0; sy = 0;
+            }
+            if(sy >= srcHeight - 1){
+                fy = 0.0; sy = srcHeight - 2;
+            }
+
+            for(int dstX = 0; dstX < dstWidth; ++dstX){
+                double fx = ((double)dstX + 0.5) * scaleX - 0.5;
+                int sx = (int)fx;
+                fx -= sx;
+                if(sx < 0){
+                    fx = 0.0; sx = 0;
+                }
+                if(sx >= srcWidth - 1){
+                    fx = 0.0; sx = srcWidth - 2;
+                }
+
+                dst[dstY][dstX] = (float) ((1.0-fx) * (1.0-fy) * src[sy][sx]
+                        + fx * (1.0-fy) * src[sy][sx+1]
+                        + (1.0-fx) * fy * src[sy+1][sx]
+                        + fx * fy * src[sy+1][sx+1]);
+            }
+        }
+
+        return dst;
+    }
+
+    public static float[][] matrixResizeCUBIC(float [][] src, int dstHeight, int dstWidth){
+        int srcHeight = src.length;
+        int srcWidth = src[0].length;
+        float[][] dst = new float[dstHeight][dstWidth];
+        double scaleX = (double)srcWidth / (double)dstWidth;
+        double scaleY = (double)srcHeight / (double)dstHeight;
+        int ksize = 4;
+
+        int[][] xofs = new int[dstWidth][ksize];
+        int[][] yofs = new int[dstHeight][ksize];
+        double[][] alpha = new double[dstWidth][ksize];
+        double[][] beta = new double[dstHeight][ksize];
+
+        for (int dx = 0; dx < dstWidth; ++dx) {
+            double fx = ((double)dx + 0.5) * scaleX - 0.5;
+            int sx = (int)fx;
+            fx -= sx;
+            double[] cbuf = interpolateCubic(fx);
+            for(int k = 0; k < ksize; ++k) {
+                xofs[dx][k] = clip(sx - 1 + k, 0, srcWidth - 1);
+                alpha[dx][k] = cbuf[k];
+            }
+        }
+        for (int dy = 0; dy < dstHeight; ++dy) {
+            double fy = ((double)dy + 0.5) * scaleY - 0.5;
+            int sy = (int)fy;
+            fy -= sy;
+            double[] cbuf = interpolateCubic(fy);
+            for(int k = 0; k < ksize; ++k) {
+                yofs[dy][k] = clip(sy - 1 + k, 0, srcHeight - 1);
+                beta[dy][k] = cbuf[k];
+            }
+        }
+
+        for (int dy = 0; dy < dstHeight; ++dy) {
+            for (int dx = 0; dx < dstWidth; ++dx) {
+                for (int i = 0; i < ksize; ++i) {
+                    for (int j = 0; j < ksize; ++j) {
+                        int xi = xofs[dx][i], yj = yofs[dy][j];
+                        dst[dy][dx] += alpha[dx][i] * beta[dy][j] * src[yj][xi];
+                    }
+                }
+            }
+        }
+
+        return dst;
+    }
+
+    public static ArrayList<BoundingBox>
+    nms(ArrayList<BoundingBox> boxes, double threshold) {
+        ArrayList<BoundingBox> picked_boxes = new ArrayList<>(boxes);
+        picked_boxes.sort((t1, t2) -> {
+            if (t1.score < t2.score) {
+                return 1;
+            }
+            else if (t1.score > t2.score) {
+                return -1;
+            }
+            else {
+                return 0;
+            }
+        });
+        for (int i = 0; i < picked_boxes.size(); i++) {
+            BoundingBox b1 = picked_boxes.get(i);
+            for (int j = i + 1; j < picked_boxes.size(); ) {
+                BoundingBox b2 = picked_boxes.get(j);
+                double iou = b1.iou(b2);
+                if (Double.compare(iou, threshold) == 1) {
+                    picked_boxes.remove(j);
+                }
+                else {
+                    ++j;
+                }
+            }
+        }
+        return picked_boxes;
+    }
+
+    public static float[] round(float[] data) {
+        assert data != null;
+        float[] result = new float[data.length];
+        for(int i = 0; i < data.length; i++) {
+            result[i] = (int)Math.round(data[i]);
+        }
+        return result;
+    }
+
+    private static double[] interpolateCubic(double x) {
+        double[] coeffs = new double[4];
+        double A = -0.75;
+        coeffs[0] = ((A*(x + 1) - 5*A)*(x + 1) + 8*A)*(x + 1) - 4*A;
+        coeffs[1] = ((A + 2)*x - (A + 3))*x*x + 1;
+        coeffs[2] = ((A + 2)*(1 - x) - (A + 3))*(1 - x)*(1 - x) + 1;
+        coeffs[3] = 1.f - coeffs[0] - coeffs[1] - coeffs[2];
+        return coeffs;
+    }
+    private static int clip(int num, int min , int max) {
+        return num >= min ? Math.min(num, max) : min;
+    }
+
 }

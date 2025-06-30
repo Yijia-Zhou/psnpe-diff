@@ -19,12 +19,10 @@ import android.widget.Toast;
 import com.qualcomm.qti.psnpe.PSNPEConfig;
 import com.qualcomm.qti.psnpe.PSNPEManager;
 import com.qualcomm.qti.psnpedemo.R;
-import com.qualcomm.qti.psnpedemo.components.ModelConfigsAdapter;
 import com.qualcomm.qti.psnpedemo.components.ModelItemAdapter;
 import com.qualcomm.qti.psnpedemo.components.ModelListItem;
 import com.qualcomm.qti.psnpedemo.utils.Util;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -33,64 +31,16 @@ public class MainActivity extends Activity {
     private static String TAG = MainActivity.class.getSimpleName();
     TextView message;
     ListView modelList;
-    ListView modelConfigList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-//        setContentView(R.layout.activity_main);
-//        message = findViewById(R.id.messageText);
-//        message.setVisibility(View.GONE);
-//        String nativeLibPath = getApplicationInfo().nativeLibraryDir;
-//        String runtimeConfigPath = getExternalFilesDir("configs").getAbsolutePath();
-//        if(!PSNPEManager.init(nativeLibPath,  runtimeConfigPath + "/fp_model_configs.json")) {
-//            Util.displayAtToast(MainActivity.this, "PSNPE init failed, natviePath: " + nativeLibPath + " or model configs file not right", Toast.LENGTH_LONG);
-//            return;
-//        }
-//        initUI();
-
         setContentView(R.layout.activity_main);
         message = findViewById(R.id.messageText);
         message.setVisibility(View.GONE);
-
-        modelConfigList = findViewById(R.id.list_model_configs);
-        ArrayList<File> files = getAllFiles(getExternalFilesDir("configs").getAbsolutePath(), "model_configs.json");
-        Log.e("测试", "目录下符合xxx_model_configs.json 的有：" + files.size());
-        ModelConfigsAdapter adapter = new ModelConfigsAdapter(this, files);
-        modelConfigList.setAdapter(adapter);
-        modelConfigList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                String path = (String) modelConfigList.getItemAtPosition(position);
-                loadingConfigs(path);
-                modelConfigList.setVisibility(View.GONE);
-            }
-        });
-
-    }
-
-    private ArrayList<File> getAllFiles(String dirPath, String type){
-        ArrayList<File> fileVector = new ArrayList<>();
-        File f = new File(dirPath);
-        if (!f.exists()){
-            return fileVector;
-        }
-        File[] files = f.listFiles();
-        if (files == null){
-            return fileVector;
-        }
-        ArrayList<File> vecFile = new ArrayList<>();
-        for (File theFile: files){
-            if (theFile.isFile() && theFile.getName().contains(type)){
-                vecFile.add(theFile);
-            }
-        }
-        return vecFile;
-    }
-
-    private void loadingConfigs(String modelConfigsPath){
         String nativeLibPath = getApplicationInfo().nativeLibraryDir;
-        if(!PSNPEManager.init(nativeLibPath,  modelConfigsPath)) {
+        String runtimeConfigPath = getExternalFilesDir("configs").getAbsolutePath();
+        if(!PSNPEManager.init(nativeLibPath,  runtimeConfigPath + "/model_configs.json")) {
             Util.displayAtToast(MainActivity.this, "PSNPE init failed, natviePath: " + nativeLibPath + " or model configs file not right", Toast.LENGTH_LONG);
             return;
         }
@@ -121,7 +71,6 @@ public class MainActivity extends Activity {
             } else if(config.modelFile.contains("FaceRecognition")) {
                 scenario = "FaceRecognition";
             } else {
-                Log.e("测试", modelName);
                 return false;
             }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2021 Qualcomm Technologies, Inc.
+ * Copyright (c) 2019-2023 Qualcomm Technologies, Inc.
  * All Rights Reserved.
  * Confidential and Proprietary - Qualcomm Technologies, Inc.
  */
@@ -19,10 +19,10 @@ public class ModelInfo {
     private static HashMap<String, String[]> dataSetKey = new HashMap<String, String[]>(){
         {
             // init classification key
-            String[] imagenetKey = {"inception", "resnet34", "resnet50", "mobilenet_v1", "mobilenet_v2", "vgg"};
+            String[] imagenetKey = {"inception", "resnet34", "resnet50", "mobilenet_v2", "vgg"};
             put("classificationData", imagenetKey);
             // init coco key
-            String[] cocoKey = {"fcn8s","v1ssd","yolov3"};
+            String[] cocoKey = {"fcn8s","v1ssd","yolov3","ssd_mobilenet_v1"};
             put("coco", cocoKey);
             // init voc key
             String[] vocKey = {"v2ssd","deeplabv3"};
@@ -36,6 +36,9 @@ public class ModelInfo {
             // init squad key
             String[] squadkey = {"bert"};
             put("squad", squadkey);
+            // init Set5 key
+            String[] set5Key = {"rdn"};
+            put("Set5", set5Key);
         }
     };
     public ModelInfo(){

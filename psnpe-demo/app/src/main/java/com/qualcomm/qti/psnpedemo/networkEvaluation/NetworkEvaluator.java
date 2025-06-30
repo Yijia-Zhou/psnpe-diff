@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2022 Qualcomm Technologies, Inc.
+ * Copyright (c) 2019-2023 Qualcomm Technologies, Inc.
  * All Rights Reserved.
  * Confidential and Proprietary - Qualcomm Technologies, Inc.
  */
@@ -12,10 +12,8 @@ import com.qualcomm.qti.psnpedemo.processor.DetectionPostprocessor;
 import com.qualcomm.qti.psnpedemo.processor.FCN8SPreProcessor;
 import com.qualcomm.qti.psnpedemo.processor.FaceRecognitionPostprocessor;
 import com.qualcomm.qti.psnpedemo.processor.InceptionV3PreProcessor;
-import com.qualcomm.qti.psnpedemo.processor.MobileBertPostProcessor;
 import com.qualcomm.qti.psnpedemo.processor.MobileNetPreProcessor;
 import com.qualcomm.qti.psnpedemo.processor.MobileNetSSDPreProcessor;
-import com.qualcomm.qti.psnpedemo.processor.MobileNetYOLO3PreProcessor;
 import com.qualcomm.qti.psnpedemo.processor.MobilebertPreProcessor;
 import com.qualcomm.qti.psnpedemo.processor.NaturalLanguagePostprocessor;
 import com.qualcomm.qti.psnpedemo.processor.PostProcessor;
@@ -26,6 +24,7 @@ import com.qualcomm.qti.psnpedemo.processor.SuperresolutionPostprocessor;
 import com.qualcomm.qti.psnpedemo.processor.VGGPreProcessor;
 import com.qualcomm.qti.psnpedemo.processor.VDSRPreprocessor;
 import com.qualcomm.qti.psnpedemo.processor.FaceNetPreProcessor;
+import com.qualcomm.qti.psnpedemo.processor.RDNPreProcessor;
 import com.qualcomm.qti.psnpedemo.utils.Util;
 import com.qualcomm.qti.psnpe.PSNPEConfig;
 import com.qualcomm.qti.psnpe.PSNPEManager;
@@ -72,25 +71,17 @@ public class NetworkEvaluator {
     public NetworkEvaluator(ModelInfo modelInfo) {
         this.modelInfo = modelInfo;
         File[] imagesList = Util.readImageList(getFilePath(FILE_TYPE.INPUT_LIST));
-        if (!modelInfo.getModelName().contains("mobilebert")) {
-            if (imagesList != null) {
-                imageNum = imagesList.length ;
-                Log.e("测试", "INPUT_LIST imageNum:" + imageNum);
-            }
-            if (0 == imageNum) {
-                imagePath = getFilePath(FILE_TYPE.RAW);
-                imageNum = Util.checkImageDirValidation(imagePath);
-                Log.e("测试", "RAW imageNum:" + imageNum);
-            }
-            if (0 == imageNum) {
-                imagePath = getFilePath(FILE_TYPE.IMAGE);
-                imageNum = Util.checkImageDirValidation(imagePath);
-                Log.e("测试", "IMAGE imageNum:" + imageNum);
-            }
-        }else{
-            imageNum = 75;
+        if (imagesList != null) {
+            imageNum = imagesList.length ;
         }
-        Log.e("测试", "imageNum:" + imageNum);
+        if (0 == imageNum) {
+            imagePath = getFilePath(FILE_TYPE.RAW);
+            imageNum = Util.checkImageDirValidation(imagePath);
+        }
+        if (0 == imageNum) {
+            imagePath = getFilePath(FILE_TYPE.IMAGE);
+            imageNum = Util.checkImageDirValidation(imagePath);
+        }
         initPreProcessor();
         initPostProcessor(imageNum);
         initResult();
@@ -167,30 +158,31 @@ public class NetworkEvaluator {
     }
     public void initPreProcessor() {
         String modelName = modelInfo.getModelName();
-        if(modelName.contains("inception")) {
+        if(modelName.toLowerCase().contains("inception")) {
             imagePreprocessor = new InceptionV3PreProcessor();
-        } else if(modelName.contains("resnet")) {
+        } else if(modelName.toLowerCase().contains("resnet")) {
             imagePreprocessor = new ResnetPreProcessor();
-        } else if(modelName.contains("bert")) {
+        } else if(modelName.toLowerCase().contains("bert")) {
             imagePreprocessor = new MobilebertPreProcessor();
-        } else if(modelName.contains("vgg")) {
+        } else if(modelName.toLowerCase().contains("vgg")) {
             imagePreprocessor = new VGGPreProcessor();
-        } else if(modelName.contains("yolov3")) {
-            imagePreprocessor = new MobileNetYOLO3PreProcessor();
-        } else if(modelName.contains("ssd")) {
+        } else if(modelName.toLowerCase().contains("ssd")) {
             imagePreprocessor = new MobileNetSSDPreProcessor();
-        } else if(modelName.contains("mobilenet")) {
+        } else if(modelName.toLowerCase().contains("mobilenet")) {
             imagePreprocessor = new MobileNetPreProcessor();
-        } else if(modelName.contains("deeplabv3")) {
+        } else if(modelName.toLowerCase().contains("deeplabv3")) {
             imagePreprocessor = new DeeplabV3PreProcessor();
-        } else if(modelName.contains("fcn8s")) {
+        } else if(modelName.toLowerCase().contains("fcn8s")) {
             imagePreprocessor = new FCN8SPreProcessor();
         }
-        else if(modelName.contains("vdsr")){
+        else if(modelName.toLowerCase().contains("vdsr")){
             imagePreprocessor = new VDSRPreprocessor(this.modelInfo);
         }
         else if(modelName.toLowerCase().contains("facenet")){
             imagePreprocessor = new FaceNetPreProcessor();
+        }
+        else if(modelName.toLowerCase().contains("rdn")){
+            imagePreprocessor = new RDNPreProcessor(this.modelInfo);
         }
     }
     public void initPostProcessor(int inputSize) {
@@ -204,8 +196,7 @@ public class NetworkEvaluator {
         }else if(scenarioName.contains("detection")) {
             resultPostProcessor = new DetectionPostprocessor(evaluationCallBacks, modelInfo, inputSize);
         }else if(scenarioName.contains("naturallanguage")) {
-//            resultPostProcessor = new NaturalLanguagePostprocessor(evaluationCallBacks, modelInfo, inputSize);
-            resultPostProcessor = new MobileBertPostProcessor(inputSize);
+            resultPostProcessor = new NaturalLanguagePostprocessor(evaluationCallBacks, modelInfo, inputSize);
         }else if(scenarioName.contains("segmentation")) {
             resultPostProcessor = new SegmentationPostProcessor(evaluationCallBacks, modelInfo,inputSize);
         }else if(scenarioName.contains("superresolution")) {
@@ -231,56 +222,7 @@ public class NetworkEvaluator {
     public ModelInfo getModelInfo() {
         return modelInfo;
     }
-    public boolean runMobileBert(){
-        result.clear();
-        // 加载模型
-        evaluationCallBacks.setExecuteStatus("Building...");
-        timeProfiler.startProfile(BUILD_TIME);
-        if (!PSNPEManager.buildFromFile(modelInfo.getModelName())) {
-            Log.e(TAG, "Build failed, images number: " + imageNum + "\n model name: " + modelInfo.getModelName());
-            PSNPEManager.release();
-            evaluationCallBacks.setExecuteStatus("Build failed");
-            evaluationCallBacks.showErrorText("Build failed, imagesNums" + imageNum);
-            return false;
-        }
-        timeProfiler.endProfile(BUILD_TIME);
-        int bulkSize = psnpeConfig.bulkSize;
-        // 数据预处理
-        Log.e("测试", "循环载入数据:" + bulkSize);
-        try {
-            evaluationCallBacks.setExecuteStatus("preProcessData...");
-            ((MobilebertPreProcessor)imagePreprocessor).preProcessDataAndLoadData(bulkSize);
-            Log.e("测试", "循环载入数据 完毕！");
-            evaluationCallBacks.setExecuteStatus("Executing...");
-            timeProfiler.startProfile(EXECUTE_TIME);
-            if (!PSNPEManager.executeSync()) {
-                PSNPEManager.release();
-                Log.e(TAG, "Execute failed");
-                evaluationCallBacks.setExecuteStatus("Execute failed");
-                return false;
-            }
-            Log.e("测试", "循环载入数据 推断 完毕！");
-            timeProfiler.endProfile(EXECUTE_TIME);
-            ((MobileBertPostProcessor)resultPostProcessor).postProcessResult(((MobilebertPreProcessor)imagePreprocessor), bulkSize);
-            result.updateFromProfiler(timeProfiler);
-            result.setFPS((double)imageNum/result.getInferenceTime());
-            PSNPEManager.release();
-            timeProfiler.reset();
-            Log.d(TAG, "Execute Finished");
-            evaluationCallBacks.setExecuteStatus("Success");
-            return true;
-        }catch (Exception e){
-            e.printStackTrace();
-            PSNPEManager.release();
-            timeProfiler.reset();
-            evaluationCallBacks.setExecuteStatus("failure:" + e.getMessage());
-            return false;
-        }
-    }
     public boolean run() {
-        if (modelInfo.getModelName().contains("mobilebert")){
-            return runMobileBert();
-        }
         // clear result from last time.
         result.clear();
         Util.clearInputList(modelInfo.getModelName());
@@ -312,8 +254,6 @@ public class NetworkEvaluator {
         int batchSize = firstInputDims[0];
         resultPostProcessor.batchSize = batchSize;
 
-        Log.e("测试", "batchSize:" + batchSize);
-
         int batchDataSize = 1;
         //Build the structure of hashmapbatchData
         HashMap<String, float[]> hashmapbatchData = new HashMap<String, float[]>();
@@ -324,7 +264,6 @@ public class NetworkEvaluator {
                 batchDataSize = batchDataSize * j;
             }
             hashmapbatchData.put(InputTensorName, new float[batchDataSize]);
-            Log.e("测试", "InputTensorName:" + InputTensorName + "  batchDataSize:" +  batchDataSize);
         }
 
         int batchCount = 0;
@@ -388,7 +327,7 @@ public class NetworkEvaluator {
         resultPostProcessor.postProcessResult(inputFileList);
         result.updateFromProfiler(timeProfiler);
         result.setFPS((double)imageNum/result.getInferenceTime());
-        if(modelInfo.getModelName().contains("vgg16") && psnpeConfig.runtimeConfigs[0].userBufferMode.equals("TF8")) {
+        if(modelInfo.getModelName().contains("vgg13") && psnpeConfig.runtimeConfigs[0].userBufferMode.equals("TF8")) {
             // tops are only support on vgg13. vgg13 is not used for classification
             ClassificationResult cresult=(ClassificationResult)result;
             cresult.setTops((float) (2 * 15.35 * result.getFPS()) / 1000);
@@ -402,6 +341,7 @@ public class NetworkEvaluator {
         resultPostProcessor.clearOutput();
         Log.d(TAG, "Execute Finished");
         evaluationCallBacks.setExecuteStatus("Success");
+        resultPostProcessor.resetResult();
         return true;
     }
     public boolean runOutputAsync() {

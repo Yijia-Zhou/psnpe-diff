@@ -8,7 +8,6 @@ package com.qualcomm.qti.psnpedemo.processor;
 import android.util.Log;
 
 import com.qualcomm.qti.psnpe.PSNPEManager;
-import com.qualcomm.qti.psnpedemo.components.BenchmarkApplication;
 import com.qualcomm.qti.psnpedemo.utils.Util;
 
 import java.io.File;
@@ -26,10 +25,8 @@ public class FaceNetPreProcessor extends PreProcessor{
             return outputMap;
         }
         else {
-            HashMap<String, float[]> outputMap = new HashMap<String, float[]>();
-            String[] key = PSNPEManager.getInputTensorNames();
-            outputMap.put(key[0], preData(data));
-            return outputMap;
+            Log.e(TAG, "data format invalid, dataName: " + dataName);
+            return null;
         }
     }
 
@@ -42,27 +39,5 @@ public class FaceNetPreProcessor extends PreProcessor{
             return null;
         }
         return floatArray;
-    }
-
-    private float[] preData(File data){
-        String dataName = data.getName().toLowerCase();
-        if(!(dataName.contains(".jpg") || dataName.contains(".jpeg") || dataName.contains("png"))) {
-            Log.d(TAG, "data format invalid, dataName: " + dataName);
-            return null;
-        }
-
-        int [] tensorShapes = PSNPEManager.getInputDimensions(); // nhwc
-        int length = tensorShapes.length;
-        if(tensorShapes.length != 4 || tensorShapes[length-1] != 3) {
-            Log.d(TAG, "data format should be BGR");
-            return null;
-        }
-
-        double [] meanRGB = {128, 128, 128};
-        float [] result = Util.imagePreprocess(data, tensorShapes[1], meanRGB, 128, false, 160);
-
-        String inputPath = BenchmarkApplication.getCustomApplicationContext().getExternalFilesDir("input_list").getAbsolutePath();
-        Util.write2file(inputPath + "/facenet_input_list.txt", data.getName());
-        return result;
     }
 }

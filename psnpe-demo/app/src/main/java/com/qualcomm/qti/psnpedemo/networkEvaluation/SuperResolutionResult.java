@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Qualcomm Technologies, Inc.
+ * Copyright (c) 2021-2023 Qualcomm Technologies, Inc.
  * All Rights Reserved.
  * Confidential and Proprietary - Qualcomm Technologies, Inc.
  */
@@ -15,20 +15,20 @@ public class SuperResolutionResult extends Result {
         ssim = 0;
     }
 
-    public double getPnsr() {
+    public double getPSNR() {
         return psnr;
     }
 
-    public void setPnsr(double pnsr) {
-        this.psnr = pnsr;
+    public void setPSNR(double PSNR) {
+        this.psnr = PSNR;
     }
 
-    public double getSsim() {
+    public double getSSIM() {
         return ssim;
     }
 
-    public void setSsim(double ssim) {
-        this.ssim = ssim;
+    public void setSSIM(double SSIM) {
+        this.ssim = SSIM;
     }
 
     @Override
@@ -42,8 +42,9 @@ public class SuperResolutionResult extends Result {
     public String toString() {
         String result = "";
         result = result + "FPS: " + super.getFPS()
-                + "\nInference Time: " + super.getInferenceTime() + "s\n:"
-                + "\nPSNR:" + getPnsr() + "\nSSIM:" + getSsim();
+                + "\nInference Time: " + super.getInferenceTime() + "s\n"
+                + "\nPSNR: " + getPSNR()
+                + "\nSSIM: " + getSSIM();
         return result;
     }
 }

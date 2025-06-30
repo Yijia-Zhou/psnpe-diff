@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2020 Qualcomm Technologies, Inc.
+ * Copyright (c) 2019-2024 Qualcomm Technologies, Inc.
  * All Rights Reserved.
  * Confidential and Proprietary - Qualcomm Technologies, Inc.
  */
@@ -99,7 +99,7 @@ public class Util {
             img = BitmapFactory.decodeStream(new FileInputStream(imageName));
             //resize image
             int short_dim = Math.min(img.getHeight(), img.getWidth());
-            if(resize_target == 300 || resize_target == 416) {
+            if(resize_target == 300) {
                 imgresize = img;
                 imgcrop = Bitmap.createScaledBitmap(imgresize, inputsize, inputsize, true);//resize
             }else {
@@ -336,31 +336,11 @@ public class Util {
         }
         catch (Exception e){
             Log.e(TAG, e.toString());
-            Log.e("测试", "writeArrayTofile:" + e.getMessage());
             e.printStackTrace();
         }
     }
 
     public static float[] readFloatArrayFromFile(File file){
-        try {
-            FileInputStream is = new FileInputStream(file);
-            byte[] bytes = new byte[is.available()];
-            is.read(bytes);
-            float[] floatArray = new float[bytes.length / 4];
-            for (int i = 0; i < bytes.length; i += 4) {
-                floatArray[i/4] = Float.intBitsToFloat((0xff & bytes[i]) | (0xff00 & (bytes[i+1] << 8))
-                        | (0xff0000 & (bytes[i+2] << 16)) | (0xff000000 & (bytes[i+3] << 24)));
-            }
-            return floatArray;
-        }
-        catch (Exception e){
-            Log.e(TAG, e.toString());
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    public static float[] readFloatArrayFromRawFile(File file){
         try {
             FileInputStream is = new FileInputStream(file);
             byte[] bytes = new byte[is.available()];
@@ -468,11 +448,12 @@ public class Util {
         return result;
 
     }
-    public static String getDatafromFile(String fileName) {
+
+    public static String readStringFromFile(String filePath) {
         BufferedReader reader = null;
         String laststr = "";
         try {
-            FileInputStream fileInputStream = new FileInputStream(fileName);
+            FileInputStream fileInputStream = new FileInputStream(filePath);
             InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream, "UTF-8");
             reader = new BufferedReader(inputStreamReader);
             String tempString = null;
@@ -480,8 +461,10 @@ public class Util {
                 laststr += tempString;
             }
             reader.close();
+            inputStreamReader.close();
+            fileInputStream.close();
         } catch (FileNotFoundException e){
-            Log.e(TAG, "file not found. " + fileName + e);
+            Log.e(TAG, "file not found. " + filePath + e);
         }
         catch (IOException e) {
             Log.e(TAG, "IO Exception.");

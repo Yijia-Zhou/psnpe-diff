@@ -39,7 +39,7 @@ public class DeeplabV3PreProcessor extends PreProcessor {
         }
 
         int inputSize = tensorShapes[1];
-        int resize_target = 513;
+        int resize_target = 512;
         if(inputSize != resize_target) {
             Log.d(TAG, "inputSize should be 512, actual is" + inputSize);
             return null;

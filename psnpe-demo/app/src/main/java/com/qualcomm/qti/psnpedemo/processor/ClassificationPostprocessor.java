@@ -38,9 +38,6 @@ public class ClassificationPostprocessor extends PostProcessor{
     private int top1Count;
     private int top5Count;
     private int totNum;
-    private HashMap<String, String> gt_label_Id = new HashMap<>();
-    private int id_top = 0;
-    private int bias = 0;
 
     public  ClassificationPostprocessor(EvaluationCallBacks evaluationCallBacks, ModelInfo modelInfo, int imageNumber)  {
         super(imageNumber);
@@ -53,7 +50,6 @@ public class ClassificationPostprocessor extends PostProcessor{
             modelLabelPath = packagePath + "/datasets/" + dataSetName + "/labels_dlc_inceptionv3.txt";
         } else if(modelName.contains("mobilenet")) {
             modelLabelPath = packagePath + "/datasets/" + dataSetName + "/ilsvrc_2012_labels.txt";
-            bias = 1;
         } else {
             modelLabelPath = packagePath + "/datasets/" + dataSetName + "/imagenet_slim_labels.txt";
         }
@@ -88,34 +84,6 @@ public class ClassificationPostprocessor extends PostProcessor{
         return list.toArray(new String[list.size()]);
     }
 
-//    private HashMap<String, String> loadGroundTruth(){
-//        InputStream modelLabelsStream = null;
-//        try {
-//            modelLabelsStream = new FileInputStream(groundTruthPath);
-//        } catch (FileNotFoundException e) {
-//            e.printStackTrace();
-//            evaluationCallBacks.showErrorText("dataset label path not exit: " + groundTruthPath);
-//            return null;
-//        }
-//        HashMap<String, String> dataSetLabelsMap = new HashMap<>();
-//        BufferedReader inputStream = new BufferedReader(new InputStreamReader(modelLabelsStream));
-//        String line;
-//        Pattern p = Pattern.compile("(.+jpg|.+JPEG)\\s+(.+$)");
-//        while (true) {
-//            try {
-//                if ((line = inputStream.readLine()) == null)
-//                    break;
-//                Matcher m = p.matcher(line);
-//                if(m.find()) {
-//                    dataSetLabelsMap.put(m.group(1), m.group(2));
-//                }
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//
-//        }
-//        return dataSetLabelsMap;
-//    }
     private HashMap<String, String> loadGroundTruth(){
         InputStream modelLabelsStream = null;
         try {
@@ -128,32 +96,19 @@ public class ClassificationPostprocessor extends PostProcessor{
         HashMap<String, String> dataSetLabelsMap = new HashMap<>();
         BufferedReader inputStream = new BufferedReader(new InputStreamReader(modelLabelsStream));
         String line;
-//        Pattern p = Pattern.compile("(.+jpg|.+JPEG)\\s+(.+$)");
-//        while (true) {
-//            try {
-//                if ((line = inputStream.readLine()) == null)
-//                    break;
-//                Matcher m = p.matcher(line);
-//                if(m.find()) {
-//                    dataSetLabelsMap.put(m.group(1), m.group(2));
-//                }
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//
-//        }
-        String[] result;
+        Pattern p = Pattern.compile("(.+jpg|.+JPEG)\\s+(.+$)");
         while (true) {
             try {
-                if ((line = inputStream.readLine()) == null) {
+                if ((line = inputStream.readLine()) == null)
                     break;
+                Matcher m = p.matcher(line);
+                if(m.find()) {
+                    dataSetLabelsMap.put(m.group(1), m.group(2));
                 }
-                result = line.split(",", 3);
-                dataSetLabelsMap.put(result[2], result[0]);
-                gt_label_Id.put(result[2], result[1]);
             } catch (IOException e) {
                 e.printStackTrace();
             }
+
         }
         return dataSetLabelsMap;
     }
@@ -178,72 +133,50 @@ public class ClassificationPostprocessor extends PostProcessor{
         return topk;
     }
 
-    public boolean postProcessResult(ArrayList<File> bulkImage) {
-        clearResult();
+    @Override
+    public boolean postProcessResult(ArrayList<File> inputImages) {
+        resetResult();
         Log.d(TAG, "Path " + groundTruthPath + " " + modelLabelPath);
         String modelLabels[] = loadModelLabels();
         HashMap<String, String> groundTruthMap = loadGroundTruth();
 
-        int imageNum = bulkImage.size();
+        int imageNum = inputImages.size();
         Log.i(TAG, "postProcessResult doimage number: " + imageNum);
-        float[] batchOutput = null;
-        Log.e("测试", "batchSize:" + batchSize);
         String[] outputNames = PSNPEManager.getOutputTensorNames();
         for(int i = 0; i < imageNum; i++) {
             /* output:
              * <image1><image2>...<imageBulkSize>
              * split output and handle one by one.
              */
-//            int batchCount = i % batchSize;
-//            if(batchCount == 0){
-//                Map<String, float []> outputMap = PSNPEManager.getOutputSync(i/batchSize);
-//                String[] outputNames = PSNPEManager.getOutputTensorNames();
-//                batchOutput = outputMap.get(outputNames[0]);
-//                if(batchOutput == null) {
-//                    Log.d(TAG, "batchOutput data is null");
-//                    evaluationCallBacks.showErrorText("batchOutput result is empty");
-//                    return false;
-//                }
-//            }
-//            int outputSize = batchOutput.length/batchSize;
-//            float [] output = new float[outputSize];
-//            System.arraycopy(batchOutput, outputSize*batchCount, output, 0, outputSize);
-
             float[] output = readOutput(i).get(outputNames[0]);
 
             int labelNum = modelLabels.length;
-            String expectLabel = groundTruthMap.get(bulkImage.get(i).getName());
+
+            String expectLabel = groundTruthMap.get(inputImages.get(i).getName());
             String actualLabel = modelLabels[topKLabels(output, 0, labelNum, 1)[0]];
 
-            if(expectLabel.indexOf(actualLabel) != -1 || actualLabel.indexOf(expectLabel) != -1) {
-                top1Count+=1;
+            if(expectLabel.indexOf(actualLabel) != -1 || actualLabel.indexOf(expectLabel) != -1)
+                top1Count++;
 
-                int gt_id = Integer.parseInt(gt_label_Id.get(bulkImage.get(i).getName()));
-                int id = topKLabels(output, 0, labelNum, 1)[0] + bias;
-                if (gt_id == id){
-                    id_top += 1;
-                }
-                if (id != gt_id){
-                    Log.e("测试", bulkImage.get(i).getName() + " "  + expectLabel + " - " + actualLabel + "  " + gt_label_Id.get(bulkImage.get(i).getName()) + " "  + topKLabels(output, 0, labelNum, 1)[0]);
-                }
-            }
-            int[] top5LabelIndex = topKLabels(output, 0, labelNum, 5);
-            for (int k = 0; k < top5LabelIndex.length; k++) {
-                if (expectLabel.indexOf(modelLabels[top5LabelIndex[k]]) != -1
-                || modelLabels[top5LabelIndex[k]].indexOf(expectLabel) != -1) {
+            int [] top5LabelIndex = topKLabels(output, 0, labelNum, 5);
+            for(int k=0; k<top5LabelIndex.length; k++) {
+                if(expectLabel.indexOf(modelLabels[top5LabelIndex[k]]) != -1
+                || modelLabels[top5LabelIndex[k]].indexOf(expectLabel) != -1){
                     top5Count++;
                     break;
                 }
             }
 
         }
-        totNum += imageNum;
+        totNum = imageNumber;
         return true;
     }
 
-    private void clearResult() {
-        totNum = top1Count = top5Count = 0;
-        id_top = 0;
+    @Override
+    public void resetResult() {
+        totNum = 0;
+        top1Count =0;
+        top5Count = 0;
     }
 
     @Override
@@ -252,7 +185,6 @@ public class ClassificationPostprocessor extends PostProcessor{
         cresult.setTop1((float)top1Count/totNum);
         cresult.setTop5((float)top5Count/totNum);
         Log.d(TAG, "Top1Count: " + top1Count + " Top5Count: " +top5Count + " Total: " + totNum + "top5 " + cresult.getTop5());
-        Log.e("测试",  top1Count + " " + id_top);
     }
 
     @Override

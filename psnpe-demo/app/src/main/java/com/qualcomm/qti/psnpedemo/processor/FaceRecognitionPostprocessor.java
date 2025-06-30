@@ -12,7 +12,6 @@ import com.qualcomm.qti.psnpe.PSNPEManager;
 import com.qualcomm.qti.psnpedemo.components.BenchmarkApplication;
 import com.qualcomm.qti.psnpedemo.networkEvaluation.Result;
 import com.qualcomm.qti.psnpedemo.networkEvaluation.FaceRecognitionResult;
-import com.qualcomm.qti.psnpedemo.post.PostIdentifyFaceNet;
 import com.qualcomm.qti.psnpedemo.utils.MathUtils;
 import com.qualcomm.qti.psnpedemo.utils.Util;
 
@@ -27,6 +26,10 @@ public class FaceRecognitionPostprocessor extends PostProcessor{
     private String datasetPath;
     private Boolean[] groundTruth;
     private ArrayList<Double> distances;
+
+    @Override
+    public void resetResult(){}
+
     public FaceRecognitionPostprocessor(int imageNumber) {
         super(imageNumber);
         datasetPath = BenchmarkApplication.getExternalDirPath() + "/datasets/lfw";
@@ -41,29 +44,26 @@ public class FaceRecognitionPostprocessor extends PostProcessor{
 
     @Override
     public boolean postProcessResult(ArrayList<File> inputImages) {
-        PostIdentifyFaceNet faceNet = new PostIdentifyFaceNet();
-        return faceNet.postProcessResult(inputImages, batchSize);
-
-//        groundTruth = loadGroundTruth(datasetPath+"/gt_lfw.txt");
-//        int imgNum = inputImages.size();
-//        float [] output1 = null;
-//        float [] output2 = null;
-//        String[] outputNames = PSNPEManager.getOutputTensorNames();
-//        for (int i = 0; i < imgNum; ++i) {
-//            /* output:
-//             * <image1><image2>...<imageBulkSize>
-//             * split output and handle one by one.
-//             */
-//            if (i % 2 == 0) {
-//                output1 = readOutput(i).get(outputNames[0]);
-//            }
-//            else {
-//                output2 = readOutput(i).get(outputNames[0]);
-//                double dist = calculateDistance(output1, output2);
-//                distances.add(dist);
-//            }
-//        }
-//        return true;
+        groundTruth = loadGroundTruth(datasetPath+"/gt_lfw.txt");
+        int imgNum = inputImages.size();
+        float [] output1 = null;
+        float [] output2 = null;
+        String[] outputNames = PSNPEManager.getOutputTensorNames();
+        for (int i = 0; i < imgNum; ++i) {
+            /* output:
+             * <image1><image2>...<imageBulkSize>
+             * split output and handle one by one.
+             */
+            if (i % 2 == 0) {
+                output1 = readOutput(i).get(outputNames[0]);
+            }
+            else {
+                output2 = readOutput(i).get(outputNames[0]);
+                double dist = calculateDistance(output1, output2);
+                distances.add(dist);
+            }
+        }
+        return true;
     }
 
     @Override

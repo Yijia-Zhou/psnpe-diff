@@ -99,6 +99,9 @@ public class NaturalLanguagePostprocessor extends PostProcessor{
     }
 
     @Override
+    public void resetResult(){}
+
+    @Override
     public void getOutputCallback(String fileName, Map<String, float[]> outputs) {
         Log.i(TAG, "Async output postprocessor finished");
     }

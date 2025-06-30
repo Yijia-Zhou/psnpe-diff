@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2022 Qualcomm Technologies, Inc.
+ * Copyright (c) 2019-2024 Qualcomm Technologies, Inc.
  * All Rights Reserved.
  * Confidential and Proprietary - Qualcomm Technologies, Inc.
  */
@@ -17,7 +17,6 @@ import com.qualcomm.qti.psnpedemo.utils.Util;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -38,6 +37,7 @@ public abstract class PostProcessor {
     protected ExecutorService producer;
     protected ExecutorService consumer;
     protected Future consumerResult;
+    public abstract void resetResult();
     protected static class OutputData{
         public String fileName;
         public Map<String, float[]> data;
@@ -50,6 +50,7 @@ public abstract class PostProcessor {
     public int batchSize;
     public String outputPath;
     public int outputNumber;
+    protected String groundTruthPath;
 
     public PostProcessor(final int imageNumber){
         TAG = this.getClass().getSimpleName();
@@ -71,7 +72,7 @@ public abstract class PostProcessor {
     }
 
     public void start() {
-        consumerResult = consumer.submit(new Callable() {
+        consumerResult = consumer.submit(new Callable<Integer>() {
             @Override
             public Integer call() {
                 while(count.get() != imageNumber) {
@@ -158,9 +159,7 @@ public abstract class PostProcessor {
     }
 
     public void clearOutput(){
-        if (!Util.delete(new File(outputPath))){
-            Log.w(TAG,"Delete " + outputPath + "fail.");
-        }
+        Util.delete(new File(outputPath));
         outputNumber = 0;
     }
 }
